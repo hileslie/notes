@@ -338,3 +338,31 @@ async function test() {
 }
 ```
 
+### 异步并发控制
+
+```javascript
+function asyncPool(urls, limit, handle) {
+    return new Promise((resolve, reject) => {
+        const len = urls.length
+        let counter = 0
+        const start = async () => {
+            while(counter < len && limit > 0) {
+                limit--
+                axios.post('xxx').then(() => {
+                    limit++
+                    counter++
+                    if (counter === len) {
+                        resolve()
+                    } else {
+                        start()
+                    }
+                })
+            }
+        }
+        start()
+    })
+}
+```
+
+## 观察者模式
+
