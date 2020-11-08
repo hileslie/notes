@@ -364,5 +364,162 @@ function asyncPool(urls, limit, handle) {
 }
 ```
 
-## 观察者模式
+## 观察者模式（发布订阅模式、消息机制）
+
+```javascript
+const Observe = (function() {
+    let message = {}
+    return {
+        // 订阅消息
+        on: function(type, fn) {
+            if (typeof message[type] === 'undefined') {
+                message[type] = [fn]
+            } else {
+                message[type].push(fn)
+            }
+        },
+        // 发布消息
+        subscribe: function(type, args) {
+            if (!message[type]) return
+            let events = {
+                type: type,
+                args: args || {}
+            }
+            let len = message[type].length
+            for(let i = 0; i < len; i++) {
+                message[type][i].call(this, events)
+            }
+        },
+        // 移除消息
+        off: function(type, fn) {
+            if (message[type] instanceof Array) {
+                let i = message[type].length - 1
+                for(; i >=0; i--) {
+                    message[type][i] === fn && message[type].splice(i, 1)
+                }
+            }
+        }
+    }
+})()
+//订阅消息
+Observe.on('say', function (data) {
+    console.log(data.args.text);
+})
+Observe.on('success',function () {
+    console.log('success')
+});
+//发布消息
+Observe.subscribe('say', { text : 'hello world' } )
+Observe.subscribe('success');
+```
+
+## 函数继承
+
+### 构造函数继承
+
+```javascript
+// 组合继承
+function inheritPrototype(subType, superType) {
+    var prototype = Object.create(superType.prototype) // 创建对象，创建父类原型的一个副本
+    prototype.constructor = subType // 增强对象，弥补因重写原型而失去的默认的constructor 属性
+    subType.prototype = prototype
+}
+function SuperType() {}
+function SubType() {
+    SuperType.call(this)
+}
+inheritPrototype(SubType, SuperType)
+var instance1 = new SubType()
+```
+
+### class继承
+
+
+
+## 业务代码
+
+### 实现一个方法，让页面平滑滑动到顶部
+
+```javascript
+function scrollToTopAnimation(time) {
+    const scrollTop = (document.documentElement || document.body).scrollTop;
+    const frameTime = 100 / 60 // 每一帧的时间
+    const frameNum = time / frameTime // 需要执行的次数
+    const stepLength = scrollTop / frameNum // 步长
+    const step = () => {
+        const scrollTop = (document.documentElement || document.body).scrollTop
+        if (scrollTop > 0) {
+            window.scrollTo(0, scrollTop - stepLength)
+            requestAnimationFrame(step)
+        }
+    }
+    step()
+}
+```
+
+### 实现一个方法，可以并发加载图片，数量可以控制
+
+```javascript
+let imgs = [
+    "https://wx4.sinaimg.cn/mw690/006eLk0Pgy1gc8yvba15bj31hc0u0npd.jpg",
+    "https://wx1.sinaimg.cn/mw690/006fUZ8Mgy1gey9irj9xbj31v018o1kx.jpg",
+    "https://wx4.sinaimg.cn/mw690/006AItRTly1gf3gx0ex0cj32iu1ojkjm.jpg",
+    "https://wx1.sinaimg.cn/mw690/006eFiQily1gezdq016jij30c80bigm9.jpg",
+    "https://wx2.sinaimg.cn/mw690/006eFiQily1ge8pj7moj5j30u0190tb0.jpg",
+];
+const loadImg = (url) => new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = function() {
+        resolve()
+    }
+    img.onerror = reject
+    img.src = url
+})
+function concurrentRequest(urls, max) {
+    const firstQueue = urls.splice(0, max)
+    const promises = firstQueue.map((url, index) => {
+        return loadImg(url).then(() => {
+            return index
+        })
+    })
+    return urls.reduce((acc, cur) => {
+        return acc.then(() => {
+            return Promise.race(promises)
+        }).then((index) => {
+            promises[index] = loadImg(cur).then(() => {
+                return index
+            })
+        })
+    }, Promise.resolve()).then(() => {
+        return Promise.all(promises)
+    })
+}
+concurrentRequest(imgs, 3).then(() => {
+    console.log('finish')
+})
+```
+
+### 字符串去重，并统计出出现字数最多的字符串
+
+```javascript
+function getUnicleStringAndMaxChar(str) {
+    const map = new Map()
+    for(const char of str) {
+        if (map.has(char)) {
+            map.set(char, map.get(char) + 1)
+        } else {
+            map.set(char, 1)
+        }
+    }
+    const res = [...map.keys()].join('')
+    const arr = [...map.entries()].sort((a, b) => {
+        return b[1] - a[1]
+    })
+    const maxChar = arr[0][0]
+    return {
+        res,
+        maxChar
+    }
+}
+```
 
